@@ -41,8 +41,7 @@ def get_connection():
 def create_deck(conn, name: str) -> None:
     cursor = conn.cursor()
 
-    now = datetime.datetime.now()
-    timestamp = now.isoformat()
+    timestamp = datetime.datetime.now().isoformat()
 
     cursor.execute("INSERT INTO card_decks (name, created_at, updated_at) VALUES (?, ?, ?)", (name, timestamp, timestamp))
     conn.commit()
@@ -92,6 +91,20 @@ def get_card(conn, card_id: int) -> dict:
     cursor.execute("SELECT * FROM cards WHERE id = ?", (card_id,))
     return cursor.fetchone()
 
+#updates the time until the next review
+def update_next_review(conn, card_id: int, new_sm2_data: tuple[int, float, int]):
+    cursor = conn.cursor()
+    
+    new_repetition, new_ef, new_interval = new_sm2_data
+    now = datetime.datetime.now()
+    timestamp = now.isoformat()
+    next_review_time = (now + datetime.timedelta(days=new_interval)).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+
+    sql = "UPDATE cards SET repetition = ?, ease_factor = ?, interval = ?, next_review = ?, updated_at = ? WHERE id = ?"
+    data = (new_repetition, new_ef, new_interval, next_review_time, timestamp, card_id)
+    cursor.execute(sql, data)
+
+    conn.commit()
 
 def print_table(conn, name: str) -> None:
     cursor = conn.cursor()
