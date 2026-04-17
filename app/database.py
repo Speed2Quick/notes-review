@@ -55,7 +55,7 @@ def delete_deck(conn, deck_id: int) -> bool:
     return cursor.rowcount > 0
 
 #returns deck information as a dictionary
-def get_deck(conn, deck_id: int) -> dict:
+def get_deck(conn, deck_id: int):
     cursor = conn.cursor()
 
     cursor.execute("SELECT * FROM card_decks WHERE id = ?", (deck_id,))
@@ -85,14 +85,22 @@ def delete_card(conn, card_id: int) -> bool:
     return cursor.rowcount > 0
 
 #returns card information as a dictionary
-def get_card(conn, card_id: int) -> dict:
+def get_card(conn, card_id: int):
     cursor = conn.cursor()
 
     cursor.execute("SELECT * FROM cards WHERE id = ?", (card_id,))
     return cursor.fetchone()
 
+#returns the number of cards belonging to one deck
+def get_num_cards_in_deck(conn, deck_id: int) -> int:
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT COUNT(*) FROM cards WHERE deck_id = ?", (deck_id,))
+    count = cursor.fetchone()[0]
+    return count
+
 #updates the time until the next review
-def update_next_review(conn, card_id: int, new_sm2_data: tuple[int, float, int]):
+def update_next_review(conn, card_id: int, new_sm2_data: tuple[int, float, int]) -> None:
     cursor = conn.cursor()
     
     new_repetition, new_ef, new_interval = new_sm2_data
@@ -105,6 +113,15 @@ def update_next_review(conn, card_id: int, new_sm2_data: tuple[int, float, int])
     cursor.execute(sql, data)
 
     conn.commit()
+
+#returns cards that are due for review
+def get_cards_for_review(conn):
+    cursor = conn.cursor()
+
+    now = datetime.datetime.now().isoformat()
+    cursor.execute("SELECT * FROM cards WHERE next_review <= ?", (now,))
+
+    return cursor.fetchall()
 
 def print_table(conn, name: str) -> None:
     cursor = conn.cursor()
