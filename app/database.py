@@ -91,6 +91,19 @@ def get_card(conn, card_id: int):
     cursor.execute("SELECT * FROM cards WHERE id = ?", (card_id,))
     return cursor.fetchone()
 
+#updates a decks name
+def update_deck(conn, deck_id: int, new_name: str = ""):
+    cursor = conn.cursor()
+
+    timestamp = datetime.datetime.now().isoformat()
+    
+    if len(new_name) == 0:
+        return "Error: Cannot update with no information."
+    cursor.execute("UPDATE card_decks SET name = ?, update_at = ? WHERE id = ?", (new_name, timestamp, deck_id))
+
+    conn.commit()
+    return "Update Successful"
+
 #returns the number of cards belonging to one deck
 def get_num_cards_in_deck(conn, deck_id: int) -> int:
     cursor = conn.cursor()
@@ -98,6 +111,31 @@ def get_num_cards_in_deck(conn, deck_id: int) -> int:
     cursor.execute("SELECT COUNT(*) FROM cards WHERE deck_id = ?", (deck_id,))
     count = cursor.fetchone()[0]
     return count
+
+def update_card(conn, card_id: int, **kwargs) -> str:
+    if not kwargs:
+        return "Error: Cannot update with no information."
+
+    allowed_keys = {"question", "answer", "deck_id"}
+    updates = {key: value for key, value in kwargs.items() if key in allowed_keys and value}
+
+    if not updates:
+        return "Error: no valid fields to update."
+
+    timestamp = datetime.datetime.now().isoformat()
+    updates["updated_at"] = timestamp
+
+    set_clause = ", ".join([f"{column} = ?" for column in updates.keys()])
+    values = list(updates.values())
+    values.append(card_id)
+
+    sql = f"UPDATE cards SET {set_clause}  WHERE id = ?"
+
+    cursor = conn.cursor()
+    conn.execute(sql, values)
+
+    conn.commit()
+    return "Update Successful"
 
 #updates the time until the next review
 def update_next_review(conn, card_id: int, new_sm2_data: tuple[int, float, int]) -> None:
@@ -108,7 +146,7 @@ def update_next_review(conn, card_id: int, new_sm2_data: tuple[int, float, int])
     timestamp = now.isoformat()
     next_review_time = (now + datetime.timedelta(days=new_interval)).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
 
-    sql = "UPDATE cards SET repetition = ?, ease_factor = ?, interval = ?, next_review = ?, updated_at = ? WHERE id = ?"
+    sql = "UPDATE cards SET repetition = ?, ease_factor = ?, interval = ?, next_review = ?, update_at = ? WHERE id = ?"
     data = (new_repetition, new_ef, new_interval, next_review_time, timestamp, card_id)
     cursor.execute(sql, data)
 
