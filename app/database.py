@@ -3,7 +3,7 @@ import datetime
 from tabulate import tabulate
 from typing import Any
 
-#check if table exists
+#checks if table exists
 def initialize_db(conn) -> None:
     cursor = conn.cursor()
     cursor.execute("""CREATE TABLE IF NOT EXISTS card_decks (
@@ -18,9 +18,9 @@ def initialize_db(conn) -> None:
                         deck_id INTEGER,
                         question TEXT NOT NULL,
                         answer TEXT NOT NULL,
+                        repetition INTEGER DEFAULT 0,
                         ease_factor REAL DEFAULT 2.5,
                         interval INTEGER DEFAULT 0,
-                        repetition INTEGER DEFAULT 0,
                         next_review TEXT,
                         created_at TEXT,
                         updated_at TEXT,
@@ -30,11 +30,14 @@ def initialize_db(conn) -> None:
 
 def get_connection():
     connection = sqlite3.connect("card_deck.db")
+    connection.row_factory = sqlite3.Row
+
     cursor =  connection.cursor()
     cursor.execute("PRAGMA foreign_keys = ON")
+
     return connection
 
-#add a new deck to the card_decks table
+#adds a new deck to the card_decks table
 def create_deck(conn, name: str) -> None:
     cursor = conn.cursor()
 
@@ -44,7 +47,7 @@ def create_deck(conn, name: str) -> None:
     cursor.execute("INSERT INTO card_decks (name, created_at, updated_at) VALUES (?, ?, ?)", (name, timestamp, timestamp))
     conn.commit()
 
-#remove a deck by id
+#removes a deck by id (also removes all cards in the deck)
 def delete_deck(conn, deck_id: int) -> bool:
     cursor = conn.cursor()
 
@@ -52,6 +55,14 @@ def delete_deck(conn, deck_id: int) -> bool:
     conn.commit()
     return cursor.rowcount > 0
 
+#returns deck information as a dictionary
+def get_deck(conn, deck_id: int) -> dict:
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM card_decks WHERE id = ?", (deck_id,))
+    return cursor.fetchone()
+
+#adds a new card to the cards table with the deck_id
 def create_card(conn, deck_id: int, question: str, answer: str) -> None:
     cursor = conn.cursor()
 
@@ -66,12 +77,21 @@ def create_card(conn, deck_id: int, question: str, answer: str) -> None:
                 )
     conn.commit()
 
+#removes a single card from the table by id
 def delete_card(conn, card_id: int) -> bool:
     cursor = conn.cursor()
 
     cursor.execute("DELETE FROM cards WHERE id = ?", (card_id,))
     conn.commit()
     return cursor.rowcount > 0
+
+#returns card information as a dictionary
+def get_card(conn, card_id: int) -> dict:
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM cards WHERE id = ?", (card_id,))
+    return cursor.fetchone()
+
 
 def print_table(conn, name: str) -> None:
     cursor = conn.cursor()
