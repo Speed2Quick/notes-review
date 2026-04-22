@@ -37,14 +37,19 @@ def get_connection():
 
     return connection
 
-#adds a new deck to the card_decks table
-def create_deck(conn, name: str) -> None:
+#adds a new deck to the card_decks table and returns its id
+def create_deck(conn, name: str) -> int:
     cursor = conn.cursor()
 
     timestamp = datetime.datetime.now().isoformat()
 
     cursor.execute("INSERT INTO card_decks (name, created_at, updated_at) VALUES (?, ?, ?)", (name, timestamp, timestamp))
+
+    if cursor.rowcount > 0:
+        print(f"{name} was added.")
+
     conn.commit()
+    return cursor.lastrowid
 
 #removes a deck by id (also removes all cards in the deck)
 def delete_deck(conn, deck_id: int) -> bool:
@@ -54,9 +59,14 @@ def delete_deck(conn, deck_id: int) -> bool:
     conn.commit()
     return cursor.rowcount > 0
 
-#returns deck information as a dictionary
-def get_deck(conn, deck_id: int):
+#returns deck information
+#returns all decks if no deck_id was passed
+def get_deck(conn, deck_id: int = -1):
     cursor = conn.cursor()
+
+    if deck_id == -1:
+        cursor.execute("SELECT * FROM card_decks")
+        return cursor.fetchall()
 
     cursor.execute("SELECT * FROM card_decks WHERE id = ?", (deck_id,))
     return cursor.fetchone()
@@ -74,6 +84,10 @@ def create_card(conn, deck_id: int, question: str, answer: str) -> None:
                        VALUES (?, ?, ?, ?, ?, ?)""",
                    (deck_id, question, answer, timestamp, timestamp, timestamp)
                 )
+
+    if cursor.rowcount > 0:
+        print("\nCard added\n")
+
     conn.commit()
 
 #removes a single card from the table by id
@@ -112,6 +126,7 @@ def get_num_cards_in_deck(conn, deck_id: int) -> int:
     count = cursor.fetchone()[0]
     return count
 
+#updates a cards information
 def update_card(conn, card_id: int, **kwargs) -> str:
     if not kwargs:
         return "Error: Cannot update with no information."
@@ -132,7 +147,7 @@ def update_card(conn, card_id: int, **kwargs) -> str:
     sql = f"UPDATE cards SET {set_clause}  WHERE id = ?"
 
     cursor = conn.cursor()
-    conn.execute(sql, values)
+    cursor.execute(sql, values)
 
     conn.commit()
     return "Update Successful"
@@ -176,7 +191,10 @@ if __name__ == "__main__":
     try: 
         initialize_db(connection)
 
+        print("\n*** Decks ***\n")
         print_table(connection, "card_decks")
+
+        print("\n*** Cards ***\n")
         print_table(connection, "cards") 
     finally:
         connection.close()
