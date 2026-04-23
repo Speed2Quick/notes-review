@@ -13,7 +13,7 @@ def choose_menu_action(ctx):
     #if choice == 0: return State.SELECT_DECK
     if choice == 1: return State.SELECT_STUDY
     if choice == 2: return State.SELECT_ADD
-    if choice == 3: return State.UPDATE
+    if choice == 3: return State.EDIT
     if choice == 4: return State.SELECT_DELETE
     if choice == 5: return State.EXIT
     return State.MAIN_MENU
@@ -38,8 +38,10 @@ def add(ctx):
 
     #adds a new deck and returns state to allow user to add cards to it
     if choice == 0: return State.ADD_DECKS
-    else: ctx.deck_id = choose_deck(ctx)
-    return State.ADD_CARDS
+    if choice == 1: 
+        ctx.deck_id = choose_deck(ctx)
+        return State.ADD_CARDS
+    return State.MAIN_MENU
 
 #helper to add deck
 def add_decks(ctx):
@@ -61,40 +63,56 @@ def add_cards(ctx):
     return State.MAIN_MENU
 
 #updates deck name or card question and answer
-def update(ctx):
-    ctx.deck_id = choose_deck(ctx)
-
+def edit(ctx):
     print("Update deck or card?")
     choice = display_terminal_menu("Deck", "Card")
 
-    if choice == 0:
-        name: str = input("Enter a new name for the deck: ")
-        ctx.deck_id = update_deck(ctx.conn, ctx.deck_id, name)
-    if choice == 1:
-        ctx.card_id = choose_card(ctx)
-        question, answer = set_card_info()
-        update_card(ctx.conn, ctx.card_id, question=question, answer=answer)
+    if choice == 0: return State.EDIT_DECKS
+    if choice == 1: 
+        ctx.deck_id = choose_deck(ctx)
+        return State.EDIT_CARDS
+    return State.MAIN_MENU
+
+#helper to update decks
+def edit_decks(ctx):
+    ctx.deck_id = choose_deck(ctx)
+    name: str = input("Enter a new name for the deck: ")
+    ctx.deck_id = update_deck(ctx.conn, ctx.deck_id, name)
 
     choice = display_terminal_menu("Update Another", "Menu")
-    if choice == 0: return State.UPDATE
-    if choice == 1: return State.MAIN_MENU
+    if choice == 0: return State.EDIT_DECKS
+    return State.MAIN_MENU
+
+#helper to update cards
+def edit_cards(ctx):
+    ctx.card_id = choose_card(ctx)
+    question, answer = set_card_info()
+    update_card(ctx.conn, ctx.card_id, question=question, answer=answer)
+
+    choice = display_terminal_menu("Back", "Update Another", "Menu")
+    if choice == 0: return State.EDIT
+    if choice == 1: return State.EDIT_CARDS
+    return State.MAIN_MENU
 
 #removes the selected deck or card from the database
 def delete(ctx):
-    ctx.deck_id = choose_deck(ctx)
 
     print("Delete entire deck or a card")
     choice = display_terminal_menu("Deck", "Card")
 
     if choice == 0: return State.DELETE_DECKS
-    return State.DELETE_CARDS
+    if choice == 1: 
+        ctx.deck_id = choose_deck(ctx)
+        return State.DELETE_CARDS
+    return State.MAIN_MENU
 
 #helper to delete deck
 def delete_decks(ctx):
+    ctx.deck_id = choose_deck(ctx)
     delete_deck(ctx.conn, ctx.deck_id)
     choice = display_terminal_menu("Delete another", "Menu")
 
-    if choice == 0: return State.SELECT_DELETE
+    if choice == 0: return State.DELETE_DECKS
     return State.MAIN_MENU
 
 #helper to delete card

@@ -114,9 +114,8 @@ def get_card(conn, card_id = None, deck_id = None):
         cursor.execute("SELECT * FROM cards WHERE id = ?", (card_id,))
         return cursor.fetchone()
 
-    if deck_id is not None:
-        cursor.execute("SELECT * FROM cards WHERE deck_id = ?", (deck_id,))
-        return cursor.fetchall()
+    cursor.execute("SELECT * FROM cards WHERE deck_id = ?", (deck_id,))
+    return cursor.fetchall()
 
 #updates a decks name
 def update_deck(conn, deck_id: int, new_name: str = ""):
