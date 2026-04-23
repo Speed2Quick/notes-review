@@ -6,6 +6,7 @@ from dataclasses import dataclass
 class State(Enum):
     MAIN_MENU = auto()
     SELECT_ADD = auto()
+    ADD_DECKS = auto()
     ADD_CARDS = auto()
     UPDATE = auto()
     SELECT_DELETE= auto()

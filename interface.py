@@ -2,6 +2,10 @@ from simple_term_menu import TerminalMenu
 from app.database import create_deck, delete_deck, print_table, create_card, delete_card, get_card, get_deck, update_card, update_deck, update_next_review, get_cards_for_review, get_num_cards_in_deck
 from states import State
 
+#add error handling if no card is found in deck
+#refactor update to function similarly to add and delete
+
+
 #returns the state of the selected option
 def choose_menu_action(ctx):
     choice = display_terminal_menu("Review", "Study", "Add a new card/deck", "Edit a card/deck", "Delete a card/deck", "Exit")
@@ -13,36 +17,32 @@ def choose_menu_action(ctx):
     if choice == 4: return State.SELECT_DELETE
     if choice == 5: return State.EXIT
 
-#removes the selected deck or card from the database
-def delete(ctx):
-    choose_deck(ctx)
-
-    print("Delete entire deck or a card")
+#adds a new deck and cards or returns the state to select a deck to add to
+def add(ctx):
     choice = display_terminal_menu("Deck", "Card")
 
-    if choice == 0:
-        return State.DELETE_DECKS
-    if choice == 1:
-        return State.DELETE_CARDS
+    #adds a new deck and returns state to allow user to add cards to it
+    if choice == 0: return State.ADD_DECKS
+    else: choose_deck(ctx)
+    return State.ADD_CARDS
 
-#helper to delete deck
-def delete_decks(ctx):
-    delete_deck(ctx.conn, ctx.deck_id)
-    choice = display_terminal_menu("Delete another", "Menu")
-
-    if choice == 0:
-        return State.SELECT_DELETE
+#helper to add deck
+def add_decks(ctx):
+    name: str = input("Enter a name for the deck: ")
+    ctx.deck_id = create_deck(ctx.conn, name)
+    
+    choice = display_terminal_menu("Add another deck", "Add cards to new deck", "Menu")
+    if choice == 0: return State.ADD_DECKS
+    if choice == 1: return State.ADD_CARDS
     return State.MAIN_MENU
 
-#helper to delete card
-def delete_cards(ctx):
-    choose_card(ctx)
-    delete_card(ctx.conn, ctx.card_id)
+#helper to add cards
+def add_cards(ctx):
+    question, answer = get_card_info()
+    create_card(ctx.conn, ctx.deck_id, question, answer)
 
-    choice = display_terminal_menu("Delete another", "Menu")
-
-    if choice == 0:
-        return State.DELETE_CARDS
+    choice = display_terminal_menu("Add Another", "Menu")
+    if choice == 0: return State.ADD_CARDS
     return State.MAIN_MENU
 
 #updates deck name or card question and answer
@@ -64,17 +64,33 @@ def update(ctx):
     if choice == 0: return State.UPDATE
     if choice == 1: return State.MAIN_MENU
 
-#adds a new deck and cards or returns the state to select a deck to add to
-def add(ctx):
+#removes the selected deck or card from the database
+def delete(ctx):
+    choose_deck(ctx)
+
+    print("Delete entire deck or a card")
     choice = display_terminal_menu("Deck", "Card")
 
-    #adds a new deck and returns state to allow user to add cards to it
-    if choice == 0:
-        name: str = input("Enter a name for the deck: ")
-        ctx.deck_id = create_deck(ctx.conn, name)
-    else:
-        choose_deck(ctx)
-    return State.ADD_CARDS
+    if choice == 0: return State.DELETE_DECKS
+    return State.DELETE_CARDS
+
+#helper to delete deck
+def delete_decks(ctx):
+    delete_deck(ctx.conn, ctx.deck_id)
+    choice = display_terminal_menu("Delete another", "Menu")
+
+    if choice == 0: return State.SELECT_DELETE
+    return State.MAIN_MENU
+
+#helper to delete card
+def delete_cards(ctx):
+    choose_card(ctx)
+    delete_card(ctx.conn, ctx.card_id)
+
+    choice = display_terminal_menu("Delete another", "Menu")
+
+    if choice == 0: return State.DELETE_CARDS
+    return State.MAIN_MENU
 
 #update the context deck id state
 def choose_deck(ctx):
@@ -93,15 +109,6 @@ def choose_card(ctx):
     choice = display_terminal_menu(*card_info)
 
     ctx.card_id = cards[choice]["id"]
-
-#adds cards until the user exits
-def add_cards(ctx):
-    question, answer = get_card_info()
-    create_card(ctx.conn, ctx.deck_id, question, answer)
-
-    choice = display_terminal_menu("Add Another", "Menu")
-    if choice == 0: return State.ADD_CARDS
-    if choice == 1: return State.MAIN_MENU
 
 #returns a user submitted question and answer
 def get_card_info():
