@@ -1,8 +1,8 @@
 from simple_term_menu import TerminalMenu
-from app.database import create_deck, delete_deck, print_table, create_card, delete_card, get_card, get_deck, update_card, update_deck, update_next_review, get_cards_for_review, get_num_cards_in_deck
+from app.database import create_deck, delete_deck, print_table, create_card, delete_card, get_card, get_deck, update_card, update_deck, update_next_review, get_cards_for_review
 from states import State
 
-#add error handling if no card is found in deck
+#add error handling if no card or deck is found
 #refactor update to function similarly to add and delete
 
 
@@ -11,11 +11,26 @@ def choose_menu_action(ctx):
     choice = display_terminal_menu("Review", "Study", "Add a new card/deck", "Edit a card/deck", "Delete a card/deck", "Exit")
 
     #if choice == 0: return State.SELECT_DECK
-    #if choice == 1: return State.SELECT_DECK
+    if choice == 1: return State.SELECT_STUDY
     if choice == 2: return State.SELECT_ADD
     if choice == 3: return State.UPDATE
     if choice == 4: return State.SELECT_DELETE
     if choice == 5: return State.EXIT
+    return State.MAIN_MENU
+
+def study(ctx):
+    ctx.deck_id = choose_deck(ctx)
+    return State.STUDY
+
+def study_cards(ctx):
+    ctx.card_id = choose_card(ctx)
+    print(get_question_answer(ctx))
+
+    choice = display_terminal_menu("Back", "Choose different deck", "Menu")
+
+    if choice == 0: return State.STUDY
+    if choice == 1: return State.SELECT_STUDY
+    return State.MAIN_MENU
 
 #adds a new deck and cards or returns the state to select a deck to add to
 def add(ctx):
@@ -23,7 +38,7 @@ def add(ctx):
 
     #adds a new deck and returns state to allow user to add cards to it
     if choice == 0: return State.ADD_DECKS
-    else: choose_deck(ctx)
+    else: ctx.deck_id = choose_deck(ctx)
     return State.ADD_CARDS
 
 #helper to add deck
@@ -38,7 +53,7 @@ def add_decks(ctx):
 
 #helper to add cards
 def add_cards(ctx):
-    question, answer = get_card_info()
+    question, answer = set_card_info()
     create_card(ctx.conn, ctx.deck_id, question, answer)
 
     choice = display_terminal_menu("Add Another", "Menu")
@@ -47,7 +62,7 @@ def add_cards(ctx):
 
 #updates deck name or card question and answer
 def update(ctx):
-    choose_deck(ctx)
+    ctx.deck_id = choose_deck(ctx)
 
     print("Update deck or card?")
     choice = display_terminal_menu("Deck", "Card")
@@ -56,8 +71,8 @@ def update(ctx):
         name: str = input("Enter a new name for the deck: ")
         ctx.deck_id = update_deck(ctx.conn, ctx.deck_id, name)
     if choice == 1:
-        choose_card(ctx)
-        question, answer = get_card_info()
+        ctx.card_id = choose_card(ctx)
+        question, answer = set_card_info()
         update_card(ctx.conn, ctx.card_id, question=question, answer=answer)
 
     choice = display_terminal_menu("Update Another", "Menu")
@@ -66,7 +81,7 @@ def update(ctx):
 
 #removes the selected deck or card from the database
 def delete(ctx):
-    choose_deck(ctx)
+    ctx.deck_id = choose_deck(ctx)
 
     print("Delete entire deck or a card")
     choice = display_terminal_menu("Deck", "Card")
@@ -84,7 +99,7 @@ def delete_decks(ctx):
 
 #helper to delete card
 def delete_cards(ctx):
-    choose_card(ctx)
+    ctx.card_id = choose_card(ctx)
     delete_card(ctx.conn, ctx.card_id)
 
     choice = display_terminal_menu("Delete another", "Menu")
@@ -92,26 +107,30 @@ def delete_cards(ctx):
     if choice == 0: return State.DELETE_CARDS
     return State.MAIN_MENU
 
-#update the context deck id state
+#returns the deck id
 def choose_deck(ctx):
     #gets id of selected deck
     decks = get_deck(ctx.conn)
-    deck_names: list[str] = [deck["name"] for deck in decks]
+    deck_names: list[str] = [f"{index+1}. {deck["name"]} ({deck["cards"]})" for index, deck in enumerate(decks)]
     choice = display_terminal_menu(*deck_names)
 
-    ctx.deck_id = decks[choice]["id"]
+    return decks[choice]["id"]
 
-#update the context card id state
+#returns the card id
 def choose_card(ctx):
     #gets id of selected card
     cards = get_card(ctx.conn, deck_id=ctx.deck_id)
-    card_info: list[str] = [card["question"] for card in cards]
+    card_info: list[str] = [f"{index+1}. Question: {card["question"]}" for index, card in enumerate(cards)]
     choice = display_terminal_menu(*card_info)
 
-    ctx.card_id = cards[choice]["id"]
+    return cards[choice]["id"]
+
+def get_question_answer(ctx):
+    card = get_card(ctx.conn, card_id=ctx.card_id, deck_id=ctx.deck_id)
+    return f"\nQuestion: {card["question"]}\nAnswer: {card["answer"]}\n"
 
 #returns a user submitted question and answer
-def get_card_info():
+def set_card_info():
     question = input("Enter the question that will be displayed: ")
     answer = input("Enter the answer: ")
     return question, answer
