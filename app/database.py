@@ -61,10 +61,10 @@ def delete_deck(conn, deck_id: int) -> bool:
 
 #returns deck information
 #returns all decks if no deck_id was passed
-def get_deck(conn, deck_id: int = -1):
+def get_deck(conn, deck_id = None):
     cursor = conn.cursor()
 
-    if deck_id == -1:
+    if deck_id is None:
         cursor.execute("SELECT * FROM card_decks")
         return cursor.fetchall()
 
@@ -99,9 +99,13 @@ def delete_card(conn, card_id: int) -> bool:
     return cursor.rowcount > 0
 
 #returns card information as a dictionary
-def get_card(conn, card_id: int):
+def get_card(conn, card_id = None, deck_id = None):
     cursor = conn.cursor()
 
+    if deck_id is not None:
+        cursor.execute("SELECT * FROM cards WHERE deck_id = ?", (deck_id,))
+        return cursor.fetchall()
+        
     cursor.execute("SELECT * FROM cards WHERE id = ?", (card_id,))
     return cursor.fetchone()
 
@@ -113,10 +117,10 @@ def update_deck(conn, deck_id: int, new_name: str = ""):
     
     if len(new_name) == 0:
         return "Error: Cannot update with no information."
-    cursor.execute("UPDATE card_decks SET name = ?, update_at = ? WHERE id = ?", (new_name, timestamp, deck_id))
+    cursor.execute("UPDATE card_decks SET name = ?, updated_at = ? WHERE id = ?", (new_name, timestamp, deck_id))
 
     conn.commit()
-    return "Update Successful"
+    print("\nUpdate Successful\n")
 
 #returns the number of cards belonging to one deck
 def get_num_cards_in_deck(conn, deck_id: int) -> int:
@@ -127,11 +131,11 @@ def get_num_cards_in_deck(conn, deck_id: int) -> int:
     return count
 
 #updates a cards information
-def update_card(conn, card_id: int, **kwargs) -> str:
+def update_card(conn, card_id: int, **kwargs):
     if not kwargs:
         return "Error: Cannot update with no information."
 
-    allowed_keys = {"question", "answer", "deck_id"}
+    allowed_keys = {"question", "answer"}
     updates = {key: value for key, value in kwargs.items() if key in allowed_keys and value}
 
     if not updates:
@@ -150,7 +154,7 @@ def update_card(conn, card_id: int, **kwargs) -> str:
     cursor.execute(sql, values)
 
     conn.commit()
-    return "Update Successful"
+    print("Update Successful")
 
 #updates the time until the next review
 def update_next_review(conn, card_id: int, new_sm2_data: tuple[int, float, int]) -> None:

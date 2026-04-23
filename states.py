@@ -7,6 +7,7 @@ class State(Enum):
     MAIN_MENU = auto()
     SELECT_ADD = auto()
     ADD_CARDS = auto()
+    UPDATE = auto()
     EXIT = auto()
 
 #stores data to be passed into functions held by state
