@@ -52,12 +52,15 @@ def create_deck(conn, name: str) -> int:
     return cursor.lastrowid
 
 #removes a deck by id (also removes all cards in the deck)
-def delete_deck(conn, deck_id: int) -> bool:
+def delete_deck(conn, deck_id: int):
     cursor = conn.cursor()
 
     cursor.execute("DELETE FROM card_decks WHERE id = ?", (deck_id,))
+
+    if cursor.rowcount > 0:
+        print("\nDeck deleted\n")
+
     conn.commit()
-    return cursor.rowcount > 0
 
 #returns deck information
 #returns all decks if no deck_id was passed
@@ -91,12 +94,15 @@ def create_card(conn, deck_id: int, question: str, answer: str) -> None:
     conn.commit()
 
 #removes a single card from the table by id
-def delete_card(conn, card_id: int) -> bool:
+def delete_card(conn, card_id: int):
     cursor = conn.cursor()
 
     cursor.execute("DELETE FROM cards WHERE id = ?", (card_id,))
+
+    if cursor.rowcount > 0:
+        print("\nCard deleted\n")
+
     conn.commit()
-    return cursor.rowcount > 0
 
 #returns card information as a dictionary
 def get_card(conn, card_id = None, deck_id = None):

@@ -8,6 +8,9 @@ class State(Enum):
     SELECT_ADD = auto()
     ADD_CARDS = auto()
     UPDATE = auto()
+    SELECT_DELETE= auto()
+    DELETE_DECKS = auto()
+    DELETE_CARDS = auto()
     EXIT = auto()
 
 #stores data to be passed into functions held by state

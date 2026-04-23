@@ -1,5 +1,5 @@
 from app.database import get_connection, initialize_db
-from interface import choose_menu_action, choose_deck_or_card, add_cards, update_deck_or_card
+from interface import choose_menu_action, add, add_cards, delete_decks, update, delete, delete_cards
 from states import Context, State
 
 def main():
@@ -10,9 +10,12 @@ def main():
     #maps the state to functions
     state_map: dict = {
             State.MAIN_MENU: choose_menu_action,
-            State.SELECT_ADD: choose_deck_or_card,
+            State.SELECT_ADD: add,
             State.ADD_CARDS: add_cards,
-            State.UPDATE: update_deck_or_card
+            State.UPDATE: update,
+            State.SELECT_DELETE: delete,
+            State.DELETE_DECKS: delete_decks,
+            State.DELETE_CARDS: delete_cards
             }
 
     try:

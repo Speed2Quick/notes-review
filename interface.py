@@ -4,15 +4,49 @@ from states import State
 
 #returns the state of the selected option
 def choose_menu_action(ctx):
-    choice = display_terminal_menu("Review", "Study", "Add a new card/deck", "Edit a card/deck", "Exit")
+    choice = display_terminal_menu("Review", "Study", "Add a new card/deck", "Edit a card/deck", "Delete a card/deck", "Exit")
 
     #if choice == 0: return State.SELECT_DECK
     #if choice == 1: return State.SELECT_DECK
     if choice == 2: return State.SELECT_ADD
     if choice == 3: return State.UPDATE
-    if choice == 4: return State.EXIT
+    if choice == 4: return State.SELECT_DELETE
+    if choice == 5: return State.EXIT
 
-def update_deck_or_card(ctx):
+#removes the selected deck or card from the database
+def delete(ctx):
+    choose_deck(ctx)
+
+    print("Delete entire deck or a card")
+    choice = display_terminal_menu("Deck", "Card")
+
+    if choice == 0:
+        return State.DELETE_DECKS
+    if choice == 1:
+        return State.DELETE_CARDS
+
+#helper to delete deck
+def delete_decks(ctx):
+    delete_deck(ctx.conn, ctx.deck_id)
+    choice = display_terminal_menu("Delete another", "Menu")
+
+    if choice == 0:
+        return State.SELECT_DELETE
+    return State.MAIN_MENU
+
+#helper to delete card
+def delete_cards(ctx):
+    choose_card(ctx)
+    delete_card(ctx.conn, ctx.card_id)
+
+    choice = display_terminal_menu("Delete another", "Menu")
+
+    if choice == 0:
+        return State.DELETE_CARDS
+    return State.MAIN_MENU
+
+#updates deck name or card question and answer
+def update(ctx):
     choose_deck(ctx)
 
     print("Update deck or card?")
@@ -31,7 +65,7 @@ def update_deck_or_card(ctx):
     if choice == 1: return State.MAIN_MENU
 
 #adds a new deck and cards or returns the state to select a deck to add to
-def choose_deck_or_card(ctx):
+def add(ctx):
     choice = display_terminal_menu("Deck", "Card")
 
     #adds a new deck and returns state to allow user to add cards to it
