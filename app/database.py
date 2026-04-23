@@ -9,6 +9,7 @@ def initialize_db(conn) -> None:
     cursor.execute("""CREATE TABLE IF NOT EXISTS card_decks (
                         id INTEGER PRIMARY KEY,
                         name TEXT NOT NULL,
+                        cards INTEGER DEFAULT 0,
                         created_at TEXT,
                         updated_at TEXT
                         )
@@ -89,6 +90,7 @@ def create_card(conn, deck_id: int, question: str, answer: str) -> None:
                 )
 
     if cursor.rowcount > 0:
+        cursor.execute("UPDATE card_decks SET cards = cards + 1 WHERE id = ?", (deck_id,))
         print("\nCard added\n")
 
     conn.commit()
@@ -127,14 +129,6 @@ def update_deck(conn, deck_id: int, new_name: str = ""):
 
     conn.commit()
     print("\nUpdate Successful\n")
-
-#returns the number of cards belonging to one deck
-def get_num_cards_in_deck(conn, deck_id: int) -> int:
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT COUNT(*) FROM cards WHERE deck_id = ?", (deck_id,))
-    count = cursor.fetchone()[0]
-    return count
 
 #updates a cards information
 def update_card(conn, card_id: int, **kwargs):
@@ -206,5 +200,6 @@ if __name__ == "__main__":
 
         print("\n*** Cards ***\n")
         print_table(connection, "cards") 
+
     finally:
         connection.close()
