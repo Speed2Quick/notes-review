@@ -10,6 +10,7 @@ def initialize_db(conn) -> None:
                         id INTEGER PRIMARY KEY,
                         name TEXT NOT NULL,
                         cards INTEGER DEFAULT 0,
+                        needs_review BOOL DEFAULT 0,
                         created_at TEXT,
                         updated_at TEXT
                         )
@@ -81,12 +82,13 @@ def create_card(conn, deck_id: int, question: str, answer: str) -> None:
 
     now = datetime.datetime.now()
     timestamp = now.isoformat()
+    next_review = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
 
     cursor.execute("""INSERT INTO cards (
                        deck_id, question, answer, 
                        next_review, created_at, updated_at) 
                        VALUES (?, ?, ?, ?, ?, ?)""",
-                   (deck_id, question, answer, timestamp, timestamp, timestamp)
+                   (deck_id, question, answer, next_review, timestamp, timestamp)
                 )
 
     if cursor.rowcount > 0:
@@ -96,10 +98,11 @@ def create_card(conn, deck_id: int, question: str, answer: str) -> None:
     conn.commit()
 
 #removes a single card from the table by id
-def delete_card(conn, card_id: int):
+def delete_card(conn, card_id: int, deck_id: int):
     cursor = conn.cursor()
 
     cursor.execute("DELETE FROM cards WHERE id = ?", (card_id,))
+    #cursor.execute("UPDATE card_decks SET cards = cards - 1 WHERE id = ?", (deck_id,))
 
     if cursor.rowcount > 0:
         print("\nCard deleted\n")
@@ -171,6 +174,21 @@ def update_next_review(conn, card_id: int, new_sm2_data: tuple[int, float, int])
 
     conn.commit()
 
+#updates a decks needs review value
+def update_decks_for_review(conn):
+    cursor = conn.cursor()
+
+    now = datetime.datetime.now().isoformat()
+    cursor.execute("SELECT deck_id FROM cards WHERE next_review <= ?", (now,))
+    deck_ids = cursor.fetchall()
+
+    cursor.execute("UPDATE card_decks SET needs_review = 0, updated_at = ?", (now,))
+    if len(deck_ids) != 0:
+        for deck_id in set(deck_ids[0]):
+            cursor.execute("UPDATE card_decks SET needs_review = 1, updated_at = ? WHERE id = ?", (now, deck_id))
+
+    conn.commit()
+
 #returns cards that are due for review
 def get_cards_for_review(conn, deck_id):
     cursor = conn.cursor()
@@ -191,15 +209,15 @@ def print_table(conn, name: str) -> None:
 
 
 if __name__ == "__main__":
-    connection = get_connection()
+    conn = get_connection()
     try: 
-        initialize_db(connection)
+        initialize_db(conn)
 
         print("\n*** Decks ***\n")
-        print_table(connection, "card_decks")
+        print_table(conn, "card_decks")
 
         print("\n*** Cards ***\n")
-        print_table(connection, "cards") 
+        print_table(conn, "cards") 
 
     finally:
-        connection.close()
+        conn.close()

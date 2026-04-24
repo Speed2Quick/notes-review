@@ -1,4 +1,4 @@
-from app.database import get_connection, initialize_db
+from app.database import get_connection, initialize_db, update_decks_for_review
 from interface import choose_menu_action, review, review_card, edit_decks, study, study_cards, add, add_decks, add_cards, delete_decks, edit, edit_decks, edit_cards, delete, delete_cards
 from states import Context, State
 
@@ -28,6 +28,7 @@ def main():
     try:
 
         initialize_db(connection)
+        update_decks_for_review(connection)
         current_state = State.MAIN_MENU
 
         while current_state != State.EXIT:

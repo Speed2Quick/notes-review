@@ -1,11 +1,9 @@
 from simple_term_menu import TerminalMenu
 from sm2_logic import calculate_sm2
-from app.database import create_deck, delete_deck, print_table, create_card, delete_card, get_card, get_deck, update_card, update_deck, update_next_review, get_cards_for_review
+from app.database import create_deck, delete_deck, create_card, delete_card, get_card, get_deck, update_card, update_deck, update_next_review, get_cards_for_review, update_decks_for_review
 from states import State
 
 #add error handling if no card or deck is found
-#refactor update to function similarly to add and delete
-
 
 #returns the state of the selected option
 def choose_menu_action(ctx):
@@ -30,6 +28,7 @@ def review(ctx):
 
         review_card(ctx, card)
 
+    update_decks_for_review(ctx.conn)
     choice = display_terminal_menu("Review another deck", "Menu")
     if choice == 0: return State.REVIEW
     return State.MAIN_MENU
@@ -44,6 +43,7 @@ def review_card(ctx, card):
 
     print("Difficulty: 0 hard | 5 easy")
     print("0 | 1 | 2 | 3 | 4 | 5\n")
+
     difficulty = int(input("Enter difficulty: "))
     while difficulty < 0 or difficulty > 5:
         print("\nPlease enter a number in the range of 0 to 5: ")
@@ -152,7 +152,7 @@ def delete_decks(ctx):
 #helper to delete card
 def delete_cards(ctx):
     ctx.card_id = choose_card(ctx)
-    delete_card(ctx.conn, ctx.card_id)
+    delete_card(ctx.conn, ctx.card_id, ctx.deck_id)
 
     choice = display_terminal_menu("Delete another", "Menu")
 
@@ -163,7 +163,14 @@ def delete_cards(ctx):
 def choose_deck(ctx):
     #gets id of selected deck
     decks = get_deck(ctx.conn)
-    deck_names: list[str] = [f"{index+1}. {deck["name"]} ({deck["cards"]})" for index, deck in enumerate(decks)]
+
+    deck_names: list[str] = []
+    for index, deck in enumerate(decks):
+        if deck["needs_review"] == True:
+            deck_info = f"{index+1} **{deck["name"]}** ({deck["cards"]})"
+        else:
+            deck_info = f"{index+1} {deck["name"]} ({deck["cards"]})"
+        deck_names.append(deck_info)
     choice = display_terminal_menu(*deck_names)
 
     return decks[choice]["id"]
