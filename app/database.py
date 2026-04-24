@@ -102,7 +102,7 @@ def delete_card(conn, card_id: int, deck_id: int):
     cursor = conn.cursor()
 
     cursor.execute("DELETE FROM cards WHERE id = ?", (card_id,))
-    #cursor.execute("UPDATE card_decks SET cards = cards - 1 WHERE id = ?", (deck_id,))
+    cursor.execute("UPDATE card_decks SET cards = cards - 1 WHERE id = ?", (deck_id,))
 
     if cursor.rowcount > 0:
         print("\nCard deleted\n")
