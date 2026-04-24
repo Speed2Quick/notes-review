@@ -165,18 +165,18 @@ def update_next_review(conn, card_id: int, new_sm2_data: tuple[int, float, int])
     timestamp = now.isoformat()
     next_review_time = (now + datetime.timedelta(days=new_interval)).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
 
-    sql = "UPDATE cards SET repetition = ?, ease_factor = ?, interval = ?, next_review = ?, update_at = ? WHERE id = ?"
+    sql = "UPDATE cards SET repetition = ?, ease_factor = ?, interval = ?, next_review = ?, updated_at = ? WHERE id = ?"
     data = (new_repetition, new_ef, new_interval, next_review_time, timestamp, card_id)
     cursor.execute(sql, data)
 
     conn.commit()
 
 #returns cards that are due for review
-def get_cards_for_review(conn):
+def get_cards_for_review(conn, deck_id):
     cursor = conn.cursor()
 
     now = datetime.datetime.now().isoformat()
-    cursor.execute("SELECT * FROM cards WHERE next_review <= ?", (now,))
+    cursor.execute("SELECT * FROM cards WHERE next_review <= ? and deck_id = ?", (now, deck_id))
 
     return cursor.fetchall()
 

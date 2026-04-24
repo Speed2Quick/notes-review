@@ -5,6 +5,9 @@ from dataclasses import dataclass
 #tracks the state of the program
 class State(Enum):
     MAIN_MENU = auto()
+    FILTER = auto()
+    REVIEW = auto()
+    REVIEW_CARD = auto()
     SELECT_STUDY = auto()
     STUDY = auto()
     SELECT_ADD = auto()

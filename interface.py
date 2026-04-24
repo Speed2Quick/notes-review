@@ -1,4 +1,5 @@
 from simple_term_menu import TerminalMenu
+from sm2_logic import calculate_sm2
 from app.database import create_deck, delete_deck, print_table, create_card, delete_card, get_card, get_deck, update_card, update_deck, update_next_review, get_cards_for_review
 from states import State
 
@@ -10,13 +11,46 @@ from states import State
 def choose_menu_action(ctx):
     choice = display_terminal_menu("Review", "Study", "Add a new card/deck", "Edit a card/deck", "Delete a card/deck", "Exit")
 
-    #if choice == 0: return State.SELECT_DECK
+    if choice == 0: return State.REVIEW
     if choice == 1: return State.SELECT_STUDY
     if choice == 2: return State.SELECT_ADD
     if choice == 3: return State.EDIT
     if choice == 4: return State.SELECT_DELETE
     if choice == 5: return State.EXIT
     return State.MAIN_MENU
+
+#questions and receives answer from user, updating a cards next review time based on performance
+def review(ctx):
+    deck_id = choose_deck(ctx)
+    cards = get_cards_for_review(ctx.conn, deck_id)
+
+    for index, card in enumerate(cards):
+
+        print(f"Card #{index+1}/{len(cards)}")
+
+        review_card(ctx, card)
+
+    choice = display_terminal_menu("Review another deck", "Menu")
+    if choice == 0: return State.REVIEW
+    return State.MAIN_MENU
+
+#helper to review a card
+def review_card(ctx, card):
+    print(f"Question: {card["question"]}")
+    
+
+    display_terminal_menu("Flip")
+    print(f"Answer: {card["answer"]}")
+
+    print("Difficulty: 0 hard | 5 easy")
+    print("0 | 1 | 2 | 3 | 4 | 5\n")
+    difficulty = int(input("Enter difficulty: "))
+    while difficulty < 0 or difficulty > 5:
+        print("\nPlease enter a number in the range of 0 to 5: ")
+        difficulty = int(input("Enter difficulty: "))
+
+    new_sm2 = calculate_sm2((card["repetition"], card["ease_factor"], card["interval"]), difficulty)
+    update_next_review(ctx.conn, card["id"], new_sm2)
 
 def study(ctx):
     ctx.deck_id = choose_deck(ctx)
