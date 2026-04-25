@@ -3,8 +3,6 @@ from sm2_logic import calculate_sm2
 from app.database import create_deck, delete_deck, create_card, delete_card, get_card, get_deck, update_card, update_deck, update_next_review, get_cards_for_review, update_decks_for_review
 from states import State
 
-#add error handling if no card or deck is found
-
 #returns the state of the selected option
 def choose_menu_action(ctx):
     choice = display_terminal_menu("Review", "Study", "Add a new card/deck", "Edit a card/deck", "Delete a card/deck", "Exit")
@@ -19,13 +17,21 @@ def choose_menu_action(ctx):
 
 #questions and receives answer from user, updating a cards next review time based on performance
 def review(ctx):
-    deck_id = choose_deck(ctx)
-    cards = get_cards_for_review(ctx.conn, deck_id)
+    ctx.deck_id = choose_deck(ctx)
+
+    if ctx.deck_id == -1:
+        print("You have no decks")
+        return State.MAIN_MENU
+
+    cards = get_cards_for_review(ctx.conn, ctx.deck_id)
+
+    if len(cards) == 0:
+        print("[Debug]: length of cards to review is 0")
+        print("There are no cards to review in this deck")
+        return State.REVIEW
 
     for index, card in enumerate(cards):
-
         print(f"Card #{index+1}/{len(cards)}")
-
         review_card(ctx, card)
 
     update_decks_for_review(ctx.conn)
@@ -54,10 +60,20 @@ def review_card(ctx, card):
 
 def study(ctx):
     ctx.deck_id = choose_deck(ctx)
+
+    if ctx.card_id == -1:
+        print("You have decks")
+        return State.MAIN_MENU
+
     return State.STUDY
 
 def study_cards(ctx):
     ctx.card_id = choose_card(ctx)
+
+    if ctx.card_id == -1:
+        print("You have no cards in this deck")
+        return State.SELECT_STUDY
+
     print(get_question_answer(ctx))
 
     choice = display_terminal_menu("Back", "Choose different deck", "Menu")
@@ -81,6 +97,10 @@ def add(ctx):
 def add_decks(ctx):
     name: str = input("Enter a name for the deck: ")
     ctx.deck_id = create_deck(ctx.conn, name)
+
+    if ctx.deck_id == -1:
+        print("You have no decks")
+        return State.MAIN_MENU
     
     choice = display_terminal_menu("Add another deck", "Add cards to new deck", "Menu")
     if choice == 0: return State.ADD_DECKS
@@ -104,12 +124,22 @@ def edit(ctx):
     if choice == 0: return State.EDIT_DECKS
     if choice == 1: 
         ctx.deck_id = choose_deck(ctx)
+
+        if ctx.deck_id == -1:
+            print("You have no decks")
+            return State.MAIN_MENU
+
         return State.EDIT_CARDS
     return State.MAIN_MENU
 
 #helper to update decks
 def edit_decks(ctx):
     ctx.deck_id = choose_deck(ctx)
+
+    if ctx.deck_id == -1:
+        print("You have no decks")
+        return State.MAIN_MENU
+
     name: str = input("Enter a new name for the deck: ")
     ctx.deck_id = update_deck(ctx.conn, ctx.deck_id, name)
 
@@ -120,6 +150,11 @@ def edit_decks(ctx):
 #helper to update cards
 def edit_cards(ctx):
     ctx.card_id = choose_card(ctx)
+
+    if ctx.card_id == -1:
+        print("You have no cards in this deck")
+        return State.EDIT
+
     question, answer = set_card_info()
     update_card(ctx.conn, ctx.card_id, question=question, answer=answer)
 
@@ -137,12 +172,22 @@ def delete(ctx):
     if choice == 0: return State.DELETE_DECKS
     if choice == 1: 
         ctx.deck_id = choose_deck(ctx)
+
+        if ctx.deck_id == -1:
+            print("You have no decks to delete cards from")
+            return State.MAIN_MENU
+
         return State.DELETE_CARDS
     return State.MAIN_MENU
 
 #helper to delete deck
 def delete_decks(ctx):
     ctx.deck_id = choose_deck(ctx)
+
+    if ctx.deck_id == -1:
+        print("You have no decks")
+        return State.MAIN_MENU
+
     delete_deck(ctx.conn, ctx.deck_id)
     choice = display_terminal_menu("Delete another", "Menu")
 
@@ -152,10 +197,14 @@ def delete_decks(ctx):
 #helper to delete card
 def delete_cards(ctx):
     ctx.card_id = choose_card(ctx)
+
+    if ctx.card_id == -1:
+        print("You have no cards in this deck")
+        return State.SELECT_DELETE
+
     delete_card(ctx.conn, ctx.card_id, ctx.deck_id)
 
     choice = display_terminal_menu("Delete another", "Menu")
-
     if choice == 0: return State.DELETE_CARDS
     return State.MAIN_MENU
 
@@ -163,6 +212,9 @@ def delete_cards(ctx):
 def choose_deck(ctx):
     #gets id of selected deck
     decks = get_deck(ctx.conn)
+
+    if len(decks) == 0:
+        return -1
 
     deck_names: list[str] = []
     for index, deck in enumerate(decks):
@@ -173,14 +225,24 @@ def choose_deck(ctx):
         deck_names.append(deck_info)
     choice = display_terminal_menu(*deck_names)
 
+    if choice is None:
+        return -1
+
     return decks[choice]["id"]
 
 #returns the card id
 def choose_card(ctx):
     #gets id of selected card
     cards = get_card(ctx.conn, deck_id=ctx.deck_id)
+
+    if len(cards) == 0:
+        return -1
+
     card_info: list[str] = [f"{index+1}. Question: {card["question"]}" for index, card in enumerate(cards)]
     choice = display_terminal_menu(*card_info)
+
+    if choice is None:
+        return -1
 
     return cards[choice]["id"]
 
